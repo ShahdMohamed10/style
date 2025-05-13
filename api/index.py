@@ -4,7 +4,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from style_detector import RoomStyleDetector
-import uvicorn
 import tempfile
 import os
 from typing import Dict
@@ -14,33 +13,23 @@ app = FastAPI(title="Room Style Detector API")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-
-# Mount the static directory
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Initialize the style detector
 detector = RoomStyleDetector()
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def root():
-    with open("templates/index.html", "r") as f:
-        return f.read()
+    return {"message": "Room Style Detector API is running"}
 
-@app.post("/detect-style")
+@app.post("/api/detect-style")
 async def detect_style(file: UploadFile = File(...)) -> Dict:
     """
     Detect the style of a room from an uploaded image.
-    
-    Args:
-        file: The image file to analyze
-        
-    Returns:
-        Dict containing the predicted style and confidence scores
     """
     temp_file = None
     try:
@@ -50,7 +39,7 @@ async def detect_style(file: UploadFile = File(...)) -> Dict:
         # Write the uploaded file to the temporary file
         content = await file.read()
         temp_file.write(content)
-        temp_file.close()  # Close the file before processing
+        temp_file.close()
         
         # Get the style prediction
         predicted_style, confidence = detector.detect_style(temp_file.name)
@@ -72,7 +61,4 @@ async def detect_style(file: UploadFile = File(...)) -> Dict:
             try:
                 os.unlink(temp_file.name)
             except Exception as e:
-                print(f"Warning: Could not delete temporary file: {str(e)}")
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080) 
+                print(f"Warning: Could not delete temporary file: {str(e)}") 
